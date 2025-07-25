@@ -8,7 +8,8 @@ import {
   BarChart3, 
   Settings,
   X,
-  Truck
+  Truck,
+  CheckCircle
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { Button } from '../ui/button';
@@ -23,37 +24,43 @@ const Sidebar = ({ onClose }) => {
       name: 'Dashboard',
       href: '/dashboard',
       icon: LayoutDashboard,
-      roles: ['admin', 'manager', 'sales_rep', 'mechanic']
+      roles: ['PLATFORM_ADMIN','SALES_MANAGER', 'SALES_AGENT', 'admin', 'manager', 'sales_rep', 'mechanic']
     },
     {
       name: 'Leads',
       href: '/leads',
       icon: Users,
-      roles: ['admin', 'manager', 'sales_rep']
+      roles: ['PLATFORM_ADMIN','SALES_MANAGER', 'SALES_AGENT', 'admin', 'manager', 'sales_rep']
     },
     {
       name: 'Vendors',
       href: '/vendors',
       icon: Building2,
-      roles: ['admin', 'manager', 'sales_rep']
+      roles: ['PLATFORM_ADMIN','SALES_MANAGER', 'SALES_AGENT', 'admin', 'manager', 'sales_rep']
     },
     {
       name: 'Tire Inventory',
       href: '/inventory',
       icon: Truck,
-      roles: ['admin', 'manager', 'mechanic']
+      roles: ['PLATFORM_ADMIN','SALES_MANAGER','admin', 'manager', 'mechanic']
     },
     {
       name: 'Reports',
       href: '/reports',
       icon: BarChart3,
-      roles: ['admin', 'manager']
+      roles: ['PLATFORM_ADMIN','admin', 'manager']
     },
     {
       name: 'Settings',
       href: '/settings',
       icon: Settings,
-      roles: ['admin']
+      roles: ['PLATFORM_ADMIN','admin']
+    },
+    {
+      name: 'Approve Leads',
+      href: '/leads/approval',
+      icon: CheckCircle,
+      roles: ['PLATFORM_ADMIN', 'admin', 'manager']
     }
   ];
 
@@ -125,7 +132,7 @@ const Sidebar = ({ onClose }) => {
               {user?.firstName} {user?.lastName}
             </p>
             <p className="text-xs text-gray-500 truncate capitalize">
-              {user?.role?.replace('_', ' ')}
+              {user?.roleName?.replace('_', ' ')}
             </p>
           </div>
         </div>

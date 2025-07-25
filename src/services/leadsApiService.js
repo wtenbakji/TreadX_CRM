@@ -152,7 +152,7 @@ const realLeadsService = {
   // Validate lead (approve/deny)
   validateLead: async (id, validationData) => {
     try {
-      const response = await apiClient.put(API_ENDPOINTS.LEAD_VALIDATE(id), validationData);
+      const response = await apiClient.put(`${API_ENDPOINTS.LEAD_VALIDATE(id)}`, validationData);
       return extractResponseData(response);
     } catch (error) {
       throw new Error(handleApiError(error, 'Failed to validate lead'));
@@ -367,6 +367,6 @@ const mockLeadsService = {
 };
 
 // Export the appropriate service based on environment
-export const leadsService = USE_MOCK_DATA !== false ? mockLeadsService : realLeadsService;
+export const leadsService = USE_MOCK_DATA === 'true' ? mockLeadsService : realLeadsService;
 export default leadsService;
 

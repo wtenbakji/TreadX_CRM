@@ -14,54 +14,30 @@ import { useAuth } from '../contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { formatCurrency, formatDate, LeadStatus } from '../types';
+import { Link } from 'react-router-dom';
+import apiClient from '../services/apiClient';
 
 const Dashboard = () => {
   const { user } = useAuth();
-  const [stats, setStats] = useState({
-    totalLeads: 0,
-    activeLeads: 0,
-    totalVendors: 0,
-    monthlyRevenue: 0,
-    recentActivities: []
-  });
+  const [totalLeads, setTotalLeads] = useState(0);
+  const [totalVendors, setTotalVendors] = useState(0);
+  const [monthlyRevenue] = useState(0); // Placeholder, update if endpoint is available
 
   useEffect(() => {
-    // Mock data for dashboard stats
-    setStats({
-      totalLeads: 156,
-      activeLeads: 42,
-      totalVendors: 28,
-      monthlyRevenue: 125000,
-      recentActivities: [
-        {
-          id: '1',
-          type: 'lead_created',
-          description: 'New lead created: Commercial Fleet Tire Order',
-          user: 'Sales Rep',
-          timestamp: new Date(Date.now() - 3600000).toISOString()
-        },
-        {
-          id: '2',
-          type: 'lead_updated',
-          description: 'Lead status updated to Qualified',
-          user: 'Sales Manager',
-          timestamp: new Date(Date.now() - 7200000).toISOString()
-        },
-        {
-          id: '3',
-          type: 'vendor_added',
-          description: 'New vendor added: Continental Tire',
-          user: 'Admin',
-          timestamp: new Date(Date.now() - 10800000).toISOString()
-        }
-      ]
+    // Fetch total leads
+    apiClient.get('/api/v1/leads?page=0&size=1').then(res => {
+      setTotalLeads(res.data.totalElements || 0);
+    });
+    // Fetch total vendors
+    apiClient.get('/api/v1/vendors?page=0&size=1').then(res => {
+      setTotalVendors(res.data.totalElements || 0);
     });
   }, []);
 
   const statCards = [
     {
       title: 'Total Leads',
-      value: stats.totalLeads,
+      value: totalLeads,
       change: '+12%',
       changeType: 'positive',
       icon: Users,
@@ -69,7 +45,7 @@ const Dashboard = () => {
     },
     {
       title: 'Active Leads',
-      value: stats.activeLeads,
+      value: 42, // Placeholder, update if endpoint is available
       change: '+8%',
       changeType: 'positive',
       icon: Activity,
@@ -77,7 +53,7 @@ const Dashboard = () => {
     },
     {
       title: 'Vendors',
-      value: stats.totalVendors,
+      value: totalVendors,
       change: '+3%',
       changeType: 'positive',
       icon: Building2,
@@ -85,7 +61,7 @@ const Dashboard = () => {
     },
     {
       title: 'Monthly Revenue',
-      value: formatCurrency(stats.monthlyRevenue),
+      value: formatCurrency(monthlyRevenue),
       change: '+15%',
       changeType: 'positive',
       icon: DollarSign,
@@ -134,31 +110,34 @@ const Dashboard = () => {
       </div>
 
       {/* Stats cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {statCards.map((stat, index) => (
-          <Card key={index}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                {stat.title}
-              </CardTitle>
-              <stat.icon className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stat.value}</div>
-              <div className="flex items-center text-xs text-muted-foreground">
-                {stat.changeType === 'positive' ? (
-                  <ArrowUpRight className="h-3 w-3 text-green-500 mr-1" />
-                ) : (
-                  <ArrowDownRight className="h-3 w-3 text-red-500 mr-1" />
-                )}
-                <span className={stat.changeType === 'positive' ? 'text-green-500' : 'text-red-500'}>
-                  {stat.change}
-                </span>
-                <span className="ml-1">{stat.description}</span>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Leads</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{totalLeads}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Vendors</CardTitle>
+            <Building2 className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{totalVendors}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Monthly Revenue</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">${monthlyRevenue.toLocaleString()}</div>
+          </CardContent>
+        </Card>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -195,21 +174,20 @@ const Dashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {stats.recentActivities.map((activity) => (
-                <div key={activity.id} className="flex items-start space-x-3">
-                  <div className="mt-1">
-                    {getActivityIcon(activity.type)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900">
-                      {activity.description}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      by {activity.user} • {formatDate(activity.timestamp)}
-                    </p>
-                  </div>
+              {/* Placeholder for recent activities */}
+              <div className="flex items-start space-x-3">
+                <div className="mt-1">
+                  <Activity className="h-4 w-4 text-gray-500" />
                 </div>
-              ))}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-900">
+                    No recent activities recorded.
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    Check back later for updates.
+                  </p>
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -225,7 +203,7 @@ const Dashboard = () => {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
+            <Link to="/leads/add" className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors block">
               <div className="flex items-center space-x-3">
                 <Users className="h-8 w-8 text-blue-500" />
                 <div>
@@ -233,8 +211,8 @@ const Dashboard = () => {
                   <p className="text-sm text-gray-500">Add a new sales opportunity</p>
                 </div>
               </div>
-            </div>
-            <div className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
+            </Link>
+            <Link to="/vendors/new" className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors block">
               <div className="flex items-center space-x-3">
                 <Building2 className="h-8 w-8 text-green-500" />
                 <div>
@@ -242,7 +220,7 @@ const Dashboard = () => {
                   <p className="text-sm text-gray-500">Register a new tire vendor</p>
                 </div>
               </div>
-            </div>
+            </Link>
             <div className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
               <div className="flex items-center space-x-3">
                 <Package className="h-8 w-8 text-purple-500" />

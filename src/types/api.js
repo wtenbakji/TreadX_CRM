@@ -253,19 +253,17 @@ export const API_ENDPOINTS = {
 export const getStatusColor = (status) => {
   switch (status) {
     case LeadStatus.PENDING:
-      return 'bg-yellow-100 text-yellow-800';
+      return { backgroundColor: '#FFBF00', color: '#000' };
     case LeadStatus.APPROVED:
-      return 'bg-green-100 text-green-800';
+      return { backgroundColor: '#28A745', color: '#fff' };
     case LeadStatus.DENIED:
-      return 'bg-red-100 text-red-800';
+      return { backgroundColor: '#DC3545', color: '#fff' };
     case LeadStatus.CONTACTED:
-      return 'bg-blue-100 text-blue-800';
-    case LeadStatus.ONBOARDED:
-      return 'bg-purple-100 text-purple-800';
+      return { backgroundColor: '#007BFF', color: '#fff' };
     case LeadStatus.DONE:
-      return 'bg-gray-100 text-gray-800';
+      return { backgroundColor: '#343A40', color: '#fff' };
     default:
-      return 'bg-gray-100 text-gray-800';
+      return { backgroundColor: '#F3F4F6', color: '#374151' };
   }
 };
 

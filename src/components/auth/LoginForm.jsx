@@ -12,10 +12,13 @@ const LoginForm = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const { login, loading, error, isAuthenticated, clearError } = useAuth();
+  const { login, loading, error, isAuthenticated, clearError, user } = useAuth();
 
   // Redirect if already authenticated
   if (isAuthenticated) {
+    if (user?.roleName === 'SALES_MANAGER' || user?.roleName === 'SALES_AGENT') {
+      return <Navigate to="/leads" replace />;
+    }
     return <Navigate to="/dashboard" replace />;
   }
 

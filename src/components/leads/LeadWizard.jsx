@@ -69,7 +69,7 @@ const WIZARD_STEPS = [
   }
 ];
 
-const LeadWizard = ({ onClose, onSuccess, initialData = null }) => {
+const LeadWizard = ({ onClose, onSuccess, initialData = null, isEdit = false }) => {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(0);
   const [formData, setFormData] = useState(initialData || { ...defaultLeadRequest });
@@ -156,8 +156,12 @@ const LeadWizard = ({ onClose, onSuccess, initialData = null }) => {
     setErrors({});
 
     try {
-      const result = await leadsService.createLead(formData, selectedFile);
-      
+      let result;
+      if (isEdit) {
+        result = await leadsService.updateLead(formData.id, formData, selectedFile);
+      } else {
+        result = await leadsService.createLead(formData, selectedFile);
+      }
       if (onSuccess) {
         onSuccess(result);
       } else {
@@ -462,7 +466,7 @@ const LeadWizard = ({ onClose, onSuccess, initialData = null }) => {
       {/* Progress Header */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-2xl font-bold">Add New Lead</h2>
+          <h2 className="text-2xl font-bold">{isEdit ? 'Edit Lead' : 'Add New Lead'}</h2>
           <Badge variant="outline">
             Step {currentStep + 1} of {WIZARD_STEPS.length}
           </Badge>
@@ -514,7 +518,7 @@ const LeadWizard = ({ onClose, onSuccess, initialData = null }) => {
               disabled={isSubmitting}
               className="bg-blue-600 hover:bg-blue-700"
             >
-              {isSubmitting ? 'Creating Lead...' : 'Create Lead'}
+              {isSubmitting ? (isEdit ? 'Updating Lead...' : 'Creating Lead...') : (isEdit ? 'Update Lead' : 'Create Lead')}
             </Button>
           )}
         </div>

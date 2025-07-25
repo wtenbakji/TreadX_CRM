@@ -9,6 +9,8 @@ import LeadsList from './pages/leads/LeadsList';
 import AddLead from './pages/leads/AddLead';
 import LeadDetail from './pages/leads/LeadDetail';
 import VendorsList from './pages/vendors/VendorsList';
+import AddVendor from './pages/vendors/AddVendor';
+import VendorDetail from './pages/vendors/VendorDetail';
 import './App.css';
 
 function App() {
@@ -32,36 +34,46 @@ function App() {
               
               {/* Leads routes */}
               <Route path="leads" element={
-                <ProtectedRoute roles={['admin', 'manager', 'sales_rep']}>
+                <ProtectedRoute roles={['PLATFORM_ADMIN','SALES_MANAGER', 'SALES_AGENT','admin', 'manager', 'sales_rep']}>
                   <LeadsList />
                 </ProtectedRoute>
               } />
               <Route path="leads/add" element={
-                <ProtectedRoute roles={['admin', 'manager', 'sales_rep']}>
+                <ProtectedRoute roles={['PLATFORM_ADMIN','SALES_MANAGER', 'SALES_AGENT','admin', 'manager', 'sales_rep']}>
                   <AddLead />
                 </ProtectedRoute>
               } />
               <Route path="leads/:id" element={
-                <ProtectedRoute roles={['admin', 'manager', 'sales_rep']}>
+                <ProtectedRoute roles={['PLATFORM_ADMIN','SALES_MANAGER', 'SALES_AGENT','admin', 'manager', 'sales_rep']}>
                   <LeadDetail />
                 </ProtectedRoute>
               } />
               <Route path="leads/:id/edit" element={
-                <ProtectedRoute roles={['admin', 'manager', 'sales_rep']}>
+                <ProtectedRoute roles={['PLATFORM_ADMIN','SALES_MANAGER', 'SALES_AGENT','admin', 'manager', 'sales_rep']}>
                   <AddLead />
                 </ProtectedRoute>
               } />
               
               {/* Vendors routes */}
               <Route path="vendors" element={
-                <ProtectedRoute roles={['admin', 'manager', 'sales_rep']}>
+                <ProtectedRoute roles={['PLATFORM_ADMIN','admin','SALES_MANAGER', 'SALES_AGENT', 'manager', 'sales_rep']}>
                   <VendorsList />
+                </ProtectedRoute>
+              } />
+              <Route path="vendors/new" element={
+                <ProtectedRoute roles={['PLATFORM_ADMIN','SALES_MANAGER', 'SALES_AGENT','admin', 'manager', 'sales_rep']}>
+                  <AddVendor />
+                </ProtectedRoute>
+              } />
+              <Route path="vendors/:id" element={
+                <ProtectedRoute roles={['PLATFORM_ADMIN','SALES_MANAGER', 'SALES_AGENT','admin', 'manager', 'sales_rep']}>
+                  <VendorDetail />
                 </ProtectedRoute>
               } />
               
               {/* Placeholder routes for future implementation */}
               <Route path="inventory" element={
-                <ProtectedRoute roles={['admin', 'manager', 'mechanic']}>
+                <ProtectedRoute roles={['PLATFORM_ADMIN','admin', 'manager', 'mechanic']}>
                   <div className="text-center py-8">
                     <h2 className="text-2xl font-bold text-gray-900 mb-4">Tire Inventory</h2>
                     <p className="text-gray-600">Inventory management feature coming soon...</p>
@@ -70,7 +82,7 @@ function App() {
               } />
               
               <Route path="reports" element={
-                <ProtectedRoute roles={['admin', 'manager']}>
+                <ProtectedRoute roles={['PLATFORM_ADMIN','admin', 'manager']}>
                   <div className="text-center py-8">
                     <h2 className="text-2xl font-bold text-gray-900 mb-4">Reports & Analytics</h2>
                     <p className="text-gray-600">Reporting features coming soon...</p>
@@ -79,7 +91,7 @@ function App() {
               } />
               
               <Route path="settings" element={
-                <ProtectedRoute roles={['admin']}>
+                <ProtectedRoute roles={['PLATFORM_ADMIN','admin']}>
                   <div className="text-center py-8">
                     <h2 className="text-2xl font-bold text-gray-900 mb-4">System Settings</h2>
                     <p className="text-gray-600">Settings panel coming soon...</p>

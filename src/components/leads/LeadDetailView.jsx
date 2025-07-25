@@ -41,6 +41,20 @@ import { leadsService } from '../../services/leadsApiService';
 import LeadContactModal from './LeadContactModal';
 import LeadValidationModal from './LeadValidationModal';
 
+// Helper to parse backend date arrays
+function parseBackendDate(arr) {
+  if (!Array.isArray(arr)) return null;
+  return new Date(
+    arr[0],
+    arr[1] - 1,
+    arr[2],
+    arr[3],
+    arr[4],
+    arr[5],
+    Math.floor(arr[6] / 1000000)
+  );
+}
+
 const LeadDetailView = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -92,9 +106,10 @@ const LeadDetailView = () => {
     }
   };
 
-  const formatDate = (dateString) => {
-    if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleDateString('en-US', {
+  const formatDate = (dateArr) => {
+    const date = parseBackendDate(dateArr);
+    if (!date) return 'N/A';
+    return date.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
@@ -112,6 +127,10 @@ const LeadDetailView = () => {
       .slice(0, 2);
   };
 
+  // Use backend API base URL from environment
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
+  console.log('API_BASE_URL for file preview/download:', API_BASE_URL);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -119,6 +138,19 @@ const LeadDetailView = () => {
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Loading lead details...</p>
         </div>
+      </div>
+    );
+  }
+
+  if (error === 'Forbidden') {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh]">
+        <div className="bg-red-100 rounded-full p-6 mb-4">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 5.636l-1.414 1.414M5.636 18.364l1.414-1.414M6.343 6.343l1.414 1.414M17.657 17.657l-1.414-1.414M12 8v4m0 4h.01" /></svg>
+        </div>
+        <h1 className="text-4xl font-bold text-red-600 mb-2">403 Forbidden</h1>
+        <p className="text-gray-700 mb-6">You do not have permission to view this lead. Please contact your administrator if you believe this is a mistake.</p>
+        <Button onClick={() => navigate('/leads')} className="bg-blue-600 text-white font-semibold px-6 py-2 rounded-lg shadow">Return to Leads</Button>
       </div>
     );
   }
@@ -160,7 +192,7 @@ const LeadDetailView = () => {
         </div>
         
         <div className="flex items-center space-x-2">
-          <Badge className={getStatusColor(lead.status)}>
+          <Badge style={getStatusColor(lead.status)}>
             {getStatusLabel(lead.status)}
           </Badge>
           
@@ -320,15 +352,23 @@ const LeadDetailView = () => {
                           </div>
                         </div>
                         <div className="flex space-x-2">
-                          <Button variant="outline" size="sm">
+                          <Button variant="outline" size="sm" onClick={() => window.open(`${API_BASE_URL}/api/v1/leads/${lead.id}/preview`, '_blank')}>
                             <Eye className="h-4 w-4 mr-2" />
                             Preview
                           </Button>
-                          <Button variant="outline" size="sm">
+                          <Button variant="outline" size="sm" onClick={() => window.open(`${API_BASE_URL}/api/v1/leads/${lead.id}/file`, '_blank')}>
                             <Download className="h-4 w-4 mr-2" />
                             Download
                           </Button>
                         </div>
+                      </div>
+                      <div className="mt-4">
+                        <img
+                          src={`${API_BASE_URL}/api/v1/leads/${lead.id}/preview`}
+                          alt="Lead Preview"
+                          className="w-full max-w-xs rounded border"
+                          onError={e => { e.target.style.display = 'none'; }}
+                        />
                       </div>
                     </div>
                   ) : (
@@ -406,7 +446,11 @@ const LeadDetailView = () => {
               )}
               
               {lead.status === LeadStatus.CONTACTED && (
-                <Button className="w-full" variant="outline">
+                <Button
+                  className="w-full"
+                  style={{ backgroundColor: '#1E40AF', color: '#fff', fontWeight: 600, borderRadius: 8, boxShadow: '0 2px 8px rgba(30,64,175,0.08)' }}
+                  onClick={() => navigate(`/vendors/new?leadId=${lead.id}`)}
+                >
                   <Building2 className="h-4 w-4 mr-2" />
                   Convert to Vendor
                 </Button>
@@ -427,7 +471,7 @@ const LeadDetailView = () => {
             <CardContent className="space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium">Current Status:</span>
-                <Badge className={getStatusColor(lead.status)}>
+                <Badge style={getStatusColor(lead.status)}>
                   {getStatusLabel(lead.status)}
                 </Badge>
               </div>

@@ -40,7 +40,7 @@ const AppLayout = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen flex bg-gray-50">
       {/* Mobile sidebar overlay */}
       {sidebarOpen && (
         <div 
@@ -50,16 +50,19 @@ const AppLayout = () => {
       )}
 
       {/* Sidebar */}
-      <div className={`
-        fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out
-        lg:translate-x-0 lg:static lg:inset-0
-        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-      `}>
+      <div
+        className={`
+          w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out
+          ${sidebarOpen ? 'fixed inset-y-0 left-0 z-50 translate-x-0' : 'fixed inset-y-0 left-0 z-50 -translate-x-full'}
+          lg:static lg:inset-0 lg:translate-x-0
+        `}
+        style={{ position: sidebarOpen ? 'fixed' : undefined }}
+      >
         <Sidebar onClose={() => setSidebarOpen(false)} />
       </div>
 
       {/* Main content */}
-      <div className="lg:pl-64">
+      <div className="flex-1 flex flex-col" style={{ marginLeft: '0', minWidth: 0 }}>
         {/* Top header */}
         <header className="bg-white shadow-sm border-b border-gray-200">
           <div className="flex items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
@@ -107,7 +110,7 @@ const AppLayout = () => {
                         {user?.email}
                       </p>
                       <p className="text-xs leading-none text-muted-foreground capitalize">
-                        {user?.role?.replace('_', ' ')}
+                        {user?.roleName?.replace('_', ' ')}
                       </p>
                     </div>
                   </DropdownMenuLabel>
@@ -132,11 +135,9 @@ const AppLayout = () => {
         </header>
 
         {/* Page content */}
-        <main className="flex-1">
-          <div className="py-6">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              <Outlet />
-            </div>
+        <main className="flex-1 overflow-y-auto">
+          <div className="py-6 px-4 sm:px-6 lg:px-8 h-full w-full">
+            <Outlet />
           </div>
         </main>
       </div>

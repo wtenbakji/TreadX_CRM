@@ -1,8 +1,10 @@
 import axios from 'axios';
 
+// Use backend API base URL from environment
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:9003';
 // Create axios instance with base configuration
 const apiClient = axios.create({
-  baseURL: 'http://159.198.75.161:9003',
+  baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -12,6 +14,10 @@ const apiClient = axios.create({
 // Request interceptor to add auth token and territory header
 apiClient.interceptors.request.use(
   (config) => {
+    // Do not attach token for login endpoint
+    if (config.url && config.url.includes('/api/v1/users/login')) {
+      return config;
+    }
     const token = localStorage.getItem('treadx_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -134,7 +140,7 @@ export const extractResponseData = (response) => {
 };
 
 // Mock data flag for development
-export const USE_MOCK_DATA = 'true';
+export const USE_MOCK_DATA = false;
 
 export default apiClient;
 

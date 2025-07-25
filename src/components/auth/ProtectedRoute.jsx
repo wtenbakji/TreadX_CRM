@@ -25,7 +25,7 @@ const ProtectedRoute = ({ children, roles = [] }) => {
   }
 
   // Check role-based access if roles are specified
-  if (roles.length > 0 && !roles.includes(user?.role)) {
+  if (roles.length > 0 && !roles.includes(user?.roleName)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center max-w-md mx-auto p-6">
@@ -39,7 +39,7 @@ const ProtectedRoute = ({ children, roles = [] }) => {
             You don't have permission to access this page. Please contact your administrator if you believe this is an error.
           </p>
           <p className="text-sm text-gray-500">
-            Your role: <span className="font-medium capitalize">{user?.role?.replace('_', ' ')}</span>
+            Your role: <span className="font-medium capitalize">{user?.roleName?.replace('_', ' ')}</span>
           </p>
         </div>
       </div>

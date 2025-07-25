@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { 
   Plus, 
   Search, 
@@ -11,10 +11,15 @@ import {
   Mail,
   Phone,
   Globe,
-  MapPin
+  MapPin,
+  Users,
+  CheckCircle,
+  Clock,
+  UserPlus
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-import { vendorsService } from '../../services/vendorsService';
+import vendorsService from '../../services/vendorsApiService';
+import apiClient from '../../services/apiClient';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
@@ -34,27 +39,63 @@ import {
 } from '../../components/ui/select';
 import { VendorType, formatDate } from '../../types';
 
+const statusColors = {
+  ACTIVE: { backgroundColor: '#28A745', color: '#fff' },
+  INACTIVE: { backgroundColor: '#DC3545', color: '#fff' },
+};
+
 const VendorsList = () => {
   const { hasAnyRole } = useAuth();
   const [vendors, setVendors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [typeFilter, setTypeFilter] = useState('');
+  const [typeFilter, setTypeFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [currentPage, setCurrentPage] = useState(0);
+  const [pageSize, setPageSize] = useState(10);
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalElements, setTotalElements] = useState(0);
+  const [totalVendors, setTotalVendors] = useState(0);
+  const [activeVendors, setActiveVendors] = useState(0);
+  const [vendorsLastWeek, setVendorsLastWeek] = useState(0); // Placeholder
+  const [subscribedStandard, setSubscribedStandard] = useState(0); // Placeholder
+  const navigate = useNavigate();
 
   useEffect(() => {
     loadVendors();
-  }, [searchTerm, typeFilter]);
+    // Fetch total vendors
+    apiClient.get('/api/v1/vendors?page=0&size=1').then(res => {
+      setTotalVendors(res.data.totalElements || 0);
+    });
+    // Fetch active vendors
+    vendorsService.getVendorsByStatus('ACTIVE', { page: 0, size: 1 }).then(res => {
+      setActiveVendors(res.totalElements || 0);
+    });
+    // Placeholder for vendors added in last week
+    setVendorsLastWeek(0);
+  }, [searchTerm, typeFilter, statusFilter, currentPage, pageSize]);
 
   const loadVendors = async () => {
     try {
       setLoading(true);
       const params = {
         search: searchTerm,
-        type: typeFilter
+        page: currentPage,
+        size: pageSize
       };
-      const response = await vendorsService.getVendors(params);
-      setVendors(response.data.vendors);
+      let data;
+      if (statusFilter !== 'all') {
+        data = await vendorsService.getVendorsByStatus(statusFilter, params);
+      } else {
+        data = await vendorsService.getVendors(params);
+      }
+      setVendors(data.content || []);
+      setTotalPages(data.totalPages || 0);
+      setTotalElements(data.totalElements || 0);
     } catch (error) {
+      setVendors([]);
+      setTotalPages(0);
+      setTotalElements(0);
       console.error('Error loading vendors:', error);
     } finally {
       setLoading(false);
@@ -84,27 +125,61 @@ const VendorsList = () => {
     }
   };
 
-  const canManageVendors = hasAnyRole(['admin', 'manager']);
-  const canEditVendors = hasAnyRole(['admin', 'manager', 'sales_rep']);
+  const handleRefresh = () => {
+    loadVendors();
+    // Optionally re-fetch stats
+    apiClient.get('/api/v1/vendors?page=0&size=1').then(res => {
+      setTotalVendors(res.data.totalElements || 0);
+    });
+    vendorsService.getVendorsByStatus('ACTIVE', { page: 0, size: 1 }).then(res => {
+      setActiveVendors(res.totalElements || 0);
+    });
+    // Placeholder for vendors added in last week
+    setVendorsLastWeek(0);
+  };
 
+  const canManageVendors = hasAnyRole(['PLATFORM_ADMIN','SALES_MANAGER', 'SALES_AGENT', 'admin', 'manager']);
+  const canEditVendors = hasAnyRole(['PLATFORM_ADMIN','admin', 'manager', 'sales_rep']);
+
+  console.log('Vendors to render:', vendors);
   return (
       <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Vendor Management</h1>
-          <p className="text-gray-600">Manage tire vendors, distributors, and service providers</p>
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+        <div className="flex gap-4 flex-wrap">
+          <div className="flex flex-col items-center justify-center bg-blue-50 rounded-xl px-6 py-4 min-w-[120px] min-h-[90px]">
+            <Users className="h-6 w-6 text-blue-600 mb-1" />
+            <div className="text-xs text-gray-500">Total Vendors</div>
+            <div className="font-bold text-xl text-blue-900">{totalVendors}</div>
+          </div>
+          <div className="flex flex-col items-center justify-center bg-green-50 rounded-xl px-6 py-4 min-w-[120px] min-h-[90px]">
+            <CheckCircle className="h-6 w-6 text-green-600 mb-1" />
+            <div className="text-xs text-gray-500">Active Vendors</div>
+            <div className="font-bold text-xl text-green-900">{activeVendors}</div>
+          </div>
+          <div className="flex flex-col items-center justify-center bg-yellow-50 rounded-xl px-6 py-4 min-w-[120px] min-h-[90px]">
+            <Clock className="h-6 w-6 text-yellow-600 mb-1" />
+            <div className="text-xs text-gray-500">Added Last Week</div>
+            <div className="font-bold text-xl text-yellow-900">{vendorsLastWeek}</div>
+          </div>
+          <div className="flex flex-col items-center justify-center bg-purple-50 rounded-xl px-6 py-4 min-w-[150px] min-h-[90px]">
+            <UserPlus className="h-6 w-6 text-purple-600 mb-1" />
+            <div className="text-xs text-gray-500">Subscribed in Standard Plan</div>
+            <div className="font-bold text-xl text-purple-900">{subscribedStandard}</div>
+          </div>
         </div>
-        {canEditVendors && (
-          <Button asChild>
-            <Link to="/vendors/new">
-              <Plus className="mr-2 h-4 w-4" />
-              New Vendor
-            </Link>
-          </Button>
-        )}
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={handleRefresh}>Refresh</Button>
+          {canManageVendors && (
+            <Button asChild>
+              <Link to="/vendors/new">
+                <Plus className="mr-2 h-4 w-4" />
+                Add New Vendor
+              </Link>
+            </Button>
+          )}
+        </div>
       </div>
-
       {/* Filters */}
       <Card>
         <CardContent className="pt-6">
@@ -113,173 +188,123 @@ const VendorsList = () => {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
-                  placeholder="Search vendors by name, email, or description..."
+                  placeholder="Search vendors by name, email, or phone..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
                 />
               </div>
             </div>
-            <Select value={typeFilter} onValueChange={setTypeFilter}>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-full sm:w-48">
-                <SelectValue placeholder="Filter by type" />
+                <SelectValue placeholder="Filter by status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Types</SelectItem>
-                {Object.values(VendorType).map((type) => (
-                  <SelectItem key={type} value={type}>
-                    {type.replace('_', ' ').toUpperCase()}
-                  </SelectItem>
-                ))}
+                <SelectItem value="all">All Statuses</SelectItem>
+                <SelectItem value="ACTIVE">Active</SelectItem>
+                <SelectItem value="INACTIVE">Inactive</SelectItem>
               </SelectContent>
             </Select>
           </div>
         </CardContent>
       </Card>
-
-      {/* Vendors list */}
-      <div className="grid gap-4">
-        {loading ? (
-          <div className="text-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-2 text-gray-600">Loading vendors...</p>
+      {/* Vendors Table */}
+      <Card className="overflow-x-auto">
+        <CardContent className="p-0">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Business Name</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Address</th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {loading ? (
+                <tr><td colSpan={6} className="text-center py-8">Loading vendors...</td></tr>
+              ) : vendors.length === 0 ? (
+                <tr><td colSpan={6} className="text-center py-8 text-gray-500">No vendors found</td></tr>
+              ) : vendors.map((vendor) => (
+                <tr
+                  key={vendor.id}
+                  className="hover:bg-gray-100 cursor-pointer"
+                  onClick={() => navigate(`/vendors/${vendor.id}`)}
+                >
+                  <td className="px-6 py-4 whitespace-nowrap font-semibold text-gray-900">
+                    <Link to={`/vendors/${vendor.id}`} className="hover:underline">
+                      {vendor.businessName}
+                    </Link>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">{vendor.email}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">{vendor.phoneNumber}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <Badge style={{...statusColors[vendor.status], fontWeight: 600, fontSize: 13, borderRadius: 999, padding: '2px 12px'}}>
+                      {vendor.status}
+                    </Badge>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-gray-700">
+                    {vendor.streetNumber} {vendor.streetName} {vendor.aptUnitBldg || ''} {vendor.postalCode}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-right">
+                    <div className="flex items-center justify-end gap-2">
+                      <Button asChild variant="outline" size="icon" title="View Vendor">
+                        <Link to={`/vendors/${vendor.id}`}><Eye className="h-4 w-4" /></Link>
+                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem asChild>
+                            <Link to={`/vendors/${vendor.id}/edit`}><Edit className="mr-2 h-4 w-4" />Edit</Link>
+                          </DropdownMenuItem>
+                          {canManageVendors && (
+                            <DropdownMenuItem onClick={() => handleDeleteVendor(vendor.id)} className="text-red-600">
+                              <Trash2 className="mr-2 h-4 w-4" />Delete
+                            </DropdownMenuItem>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </CardContent>
+      </Card>
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between mt-6">
+          <div className="text-sm text-gray-500">
+            Showing {currentPage * pageSize + 1} to {Math.min((currentPage + 1) * pageSize, totalElements)} of {totalElements} results
           </div>
-        ) : vendors.length === 0 ? (
-          <Card>
-            <CardContent className="text-center py-8">
-              <Building2 className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No vendors found</h3>
-              <p className="text-gray-600 mb-4">
-                {searchTerm || typeFilter
-                  ? 'Try adjusting your filters to see more results.'
-                  : 'Get started by adding your first vendor.'}
-              </p>
-              {canEditVendors && (
-                <Button asChild>
-                  <Link to="/vendors/new">
-                    <Plus className="mr-2 h-4 w-4" />
-                    Add Vendor
-                  </Link>
-                </Button>
-              )}
-            </CardContent>
-          </Card>
-        ) : (
-          vendors.map((vendor) => (
-            <Card key={vendor.id} className="hover:shadow-md transition-shadow">
-              <CardContent className="p-6">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-start justify-between mb-3">
-                      <div>
-                        <div className="flex items-center space-x-3 mb-2">
-                          <h3 className="text-lg font-semibold text-gray-900">
-                            {vendor.name}
-                          </h3>
-                          {getVendorTypeBadge(vendor.type)}
-                          {vendor.isActive ? (
-                            <Badge variant="outline" className="text-green-600 border-green-600">
-                              Active
-                            </Badge>
-                          ) : (
-                            <Badge variant="outline" className="text-red-600 border-red-600">
-                              Inactive
-                            </Badge>
-                          )}
-                        </div>
-                        
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-gray-600">
-                          {vendor.email && (
-                            <div className="flex items-center">
-                              <Mail className="h-4 w-4 mr-2" />
-                              {vendor.email}
-                            </div>
-                          )}
-                          {vendor.phone && (
-                            <div className="flex items-center">
-                              <Phone className="h-4 w-4 mr-2" />
-                              {vendor.phone}
-                            </div>
-                          )}
-                          {vendor.website && (
-                            <div className="flex items-center">
-                              <Globe className="h-4 w-4 mr-2" />
-                              <a 
-                                href={vendor.website} 
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                                className="text-blue-600 hover:underline"
-                              >
-                                Website
-                              </a>
-                            </div>
-                          )}
-                          {vendor.address && (
-                            <div className="flex items-center">
-                              <MapPin className="h-4 w-4 mr-2" />
-                              {vendor.address.city}, {vendor.address.state}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    
-                    {vendor.description && (
-                      <p className="text-gray-600 mb-3 line-clamp-2">
-                        {vendor.description}
-                      </p>
-                    )}
-                    
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-4 text-sm text-gray-500">
-                        <span>Contacts: {vendor.contacts?.length || 0}</span>
-                        <span>Leads: {vendor.leads?.length || 0}</span>
-                        <span>Added: {formatDate(vendor.createdAt)}</span>
-                      </div>
-                      
-                      <div className="flex items-center space-x-2">
-                        <Button variant="outline" size="sm" asChild>
-                          <Link to={`/vendors/${vendor.id}`}>
-                            <Eye className="h-4 w-4 mr-1" />
-                            View
-                          </Link>
-                        </Button>
-                        
-                        {canEditVendors && (
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem asChild>
-                                <Link to={`/vendors/${vendor.id}/edit`}>
-                                  <Edit className="mr-2 h-4 w-4" />
-                                  Edit
-                                </Link>
-                              </DropdownMenuItem>
-                              {canManageVendors && (
-                                <DropdownMenuItem 
-                                  onClick={() => handleDeleteVendor(vendor.id)}
-                                  className="text-red-600"
-                                >
-                                  <Trash2 className="mr-2 h-4 w-4" />
-                                  Delete
-                                </DropdownMenuItem>
-                              )}
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))
-        )}
-      </div>
+          <div className="flex items-center space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(prev => Math.max(0, prev - 1))}
+              disabled={currentPage === 0}
+            >
+              Previous
+            </Button>
+            <span className="text-sm text-gray-500">
+              Page {currentPage + 1} of {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(prev => Math.min(totalPages - 1, prev + 1))}
+              disabled={currentPage >= totalPages - 1}
+            >
+              Next
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

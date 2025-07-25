@@ -40,6 +40,20 @@ import {
   formatAddress 
 } from '../../types/api';
 
+// Helper to parse backend date arrays
+function parseBackendDate(arr) {
+  if (!Array.isArray(arr)) return null;
+  return new Date(
+    arr[0],
+    arr[1] - 1,
+    arr[2],
+    arr[3],
+    arr[4],
+    arr[5],
+    Math.floor(arr[6] / 1000000)
+  );
+}
+
 const LeadsList = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -57,10 +71,10 @@ const LeadsList = () => {
   const [sortDirection, setSortDirection] = useState('desc');
   const [message, setMessage] = useState(null);
 
-  const canCreateLeads = hasAnyRole(['admin', 'manager', 'sales_rep']);
-  const canEditLeads = hasAnyRole(['admin', 'manager', 'sales_rep']);
-  const canDeleteLeads = hasAnyRole(['admin', 'manager']);
-  const canValidateLeads = hasAnyRole(['admin', 'manager']);
+  const canCreateLeads = hasAnyRole(['PLATFORM_ADMIN','SALES_MANAGER', 'SALES_AGENT', , 'admin', 'manager', 'sales_rep']);
+  const canEditLeads = hasAnyRole(['PLATFORM_ADMIN','SALES_MANAGER', 'SALES_AGENT', ,'admin', 'manager', 'sales_rep']);
+  const canDeleteLeads = hasAnyRole(['PLATFORM_ADMIN','SALES_MANAGER', 'SALES_AGENT', ,'admin', 'manager']);
+  const canValidateLeads = hasAnyRole(['PLATFORM_ADMIN','SALES_MANAGER', 'admin', 'manager']);
 
   useEffect(() => {
     // Show success message if navigated from add/edit
@@ -221,62 +235,27 @@ const LeadsList = () => {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Users className="h-6 w-6 text-blue-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total Leads</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-yellow-100 rounded-lg">
-                <Clock className="h-6 w-6 text-yellow-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Pending</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.pending}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <CheckCircle className="h-6 w-6 text-green-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Approved</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.approved}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <PhoneCall className="h-6 w-6 text-blue-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Contacted</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.contacted}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div className="flex flex-col items-center justify-center bg-blue-50 rounded-xl px-6 py-4 min-w-[120px] min-h-[90px]">
+          <Users className="h-6 w-6 text-blue-600 mb-1" />
+          <div className="text-xs text-gray-500">Total Leads</div>
+          <div className="font-bold text-xl text-blue-900">{stats.total}</div>
+        </div>
+        <div className="flex flex-col items-center justify-center bg-yellow-50 rounded-xl px-6 py-4 min-w-[120px] min-h-[90px]">
+          <Clock className="h-6 w-6 text-yellow-600 mb-1" />
+          <div className="text-xs text-gray-500">Pending</div>
+          <div className="font-bold text-xl text-yellow-900">{stats.pending}</div>
+        </div>
+        <div className="flex flex-col items-center justify-center bg-green-50 rounded-xl px-6 py-4 min-w-[120px] min-h-[90px]">
+          <CheckCircle className="h-6 w-6 text-green-600 mb-1" />
+          <div className="text-xs text-gray-500">Approved</div>
+          <div className="font-bold text-xl text-green-900">{stats.approved}</div>
+        </div>
+        <div className="flex flex-col items-center justify-center bg-blue-50 rounded-xl px-6 py-4 min-w-[120px] min-h-[90px]">
+          <PhoneCall className="h-6 w-6 text-blue-600 mb-1" />
+          <div className="text-xs text-gray-500">Contacted</div>
+          <div className="font-bold text-xl text-blue-900">{stats.contacted}</div>
+        </div>
       </div>
 
       {/* Filters and Search */}
@@ -301,12 +280,36 @@ const LeadsList = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Statuses</SelectItem>
-                <SelectItem value={LeadStatus.PENDING}>Pending</SelectItem>
-                <SelectItem value={LeadStatus.APPROVED}>Approved</SelectItem>
-                <SelectItem value={LeadStatus.DENIED}>Denied</SelectItem>
-                <SelectItem value={LeadStatus.CONTACTED}>Contacted</SelectItem>
-                <SelectItem value={LeadStatus.ONBOARDED}>Onboarded</SelectItem>
-                <SelectItem value={LeadStatus.DONE}>Done</SelectItem>
+                <SelectItem value={LeadStatus.PENDING} style={{display: 'flex', justifyContent: 'flex-start', alignItems: 'center'}}>
+                  <span style={{backgroundColor: '#FFBF00', color: '#000', borderRadius: '999px', padding: '2px 10px', fontWeight: 500, fontSize: '12px', display: 'inline-block'}}>
+                    Pending
+                  </span>
+                </SelectItem>
+                <SelectItem value={LeadStatus.APPROVED} style={{display: 'flex', justifyContent: 'flex-start', alignItems: 'center'}}>
+                  <span style={{backgroundColor: '#28A745', color: '#fff', borderRadius: '999px', padding: '2px 10px', fontWeight: 500, fontSize: '12px', display: 'inline-block'}}>
+                    Approved
+                  </span>
+                </SelectItem>
+                <SelectItem value={LeadStatus.DENIED} style={{display: 'flex', justifyContent: 'flex-start', alignItems: 'center'}}>
+                  <span style={{backgroundColor: '#DC3545', color: '#fff', borderRadius: '999px', padding: '2px 10px', fontWeight: 500, fontSize: '12px', display: 'inline-block'}}>
+                    Denied
+                  </span>
+                </SelectItem>
+                <SelectItem value={LeadStatus.CONTACTED} style={{display: 'flex', justifyContent: 'flex-start', alignItems: 'center'}}>
+                  <span style={{backgroundColor: '#007BFF', color: '#fff', borderRadius: '999px', padding: '2px 10px', fontWeight: 500, fontSize: '12px', display: 'inline-block'}}>
+                    Contacted
+                  </span>
+                </SelectItem>
+                <SelectItem value={LeadStatus.ONBOARDED} style={{display: 'flex', justifyContent: 'flex-start', alignItems: 'center'}}>
+                  <span style={{backgroundColor: '#EA580C', color: '#fff', borderRadius: '999px', padding: '2px 10px', fontWeight: 500, fontSize: '12px', display: 'inline-block'}}>
+                    Onboarded
+                  </span>
+                </SelectItem>
+                <SelectItem value={LeadStatus.DONE} style={{display: 'flex', justifyContent: 'flex-start', alignItems: 'center'}}>
+                  <span style={{backgroundColor: '#343A40', color: '#fff', borderRadius: '999px', padding: '2px 10px', fontWeight: 500, fontSize: '12px', display: 'inline-block'}}>
+                    Done
+                  </span>
+                </SelectItem>
               </SelectContent>
             </Select>
             
@@ -364,7 +367,11 @@ const LeadsList = () => {
             </TableHeader>
             <TableBody>
               {filteredLeads.map((lead) => (
-                <TableRow key={lead.id} className="hover:bg-gray-50">
+                <TableRow
+                  key={lead.id}
+                  className="hover:bg-gray-100 cursor-pointer"
+                  onClick={() => navigate(`/leads/${lead.id}`)}
+                >
                   <TableCell>
                     <div className="flex items-center space-x-3">
                       <Avatar className="h-10 w-10">
@@ -415,15 +422,17 @@ const LeadsList = () => {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <Badge className={getStatusColor(lead.status)}>
+                    <Badge style={getStatusColor(lead.status)}>
                       {getStatusLabel(lead.status)}
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <div className="text-sm text-gray-900">{formatDate(lead.createdAt)}</div>
-                    {lead.updatedAt !== lead.createdAt && (
+                    <div className="text-sm text-gray-900">
+                      {parseBackendDate(lead.createdAt) ? parseBackendDate(lead.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'N/A'}
+                    </div>
+                    {parseBackendDate(lead.updatedAt) && (
                       <div className="text-xs text-gray-500">
-                        Updated {formatDate(lead.updatedAt)}
+                        Updated {parseBackendDate(lead.updatedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
                       </div>
                     )}
                   </TableCell>

@@ -1,9 +1,12 @@
 import axios from 'axios';
+import apiClient from './apiClient';
+import { API_ENDPOINTS } from '@/types/api';
+import { USE_MOCK_DATA } from './apiClient';
 
 // Create axios instance with base configuration
 const api = axios.create({
-  baseURL: 'http://localhost:8080/api',
-  headers: {
+  // baseURL: 'http://159.198.75.161:9003',
+    baseURL: 'localhost:9003',  headers: {
     'Content-Type': 'application/json',
   },
 });
@@ -39,8 +42,8 @@ export const authService = {
   login: async (email, password) => {
     // Mock login for demo purposes
     // Replace with actual API call
-    return new Promise((resolve) => {
-      setTimeout(() => {
+    return new Promise((resolve, reject) => {
+      setTimeout(async () => {
         if (email === 'admin@treadx.com' && password === 'admin123') {
           resolve({
             data: {
@@ -84,7 +87,19 @@ export const authService = {
             }
           });
         } else {
-          throw new Error('Invalid credentials');
+          // If not mock credentials, try real API login
+          try {
+            console.log("Trying login using backend url: " , API_ENDPOINTS.LOGIN);
+            console.log("the baseUrl is: ", apiClient.getUri);
+          
+            const response = await apiClient.post(API_ENDPOINTS.LOGIN, { email, password });            //  api.post('/auth/login', {
+            //   email,
+            //   password
+            // });
+            resolve(response);
+          } catch (error) {
+            reject(error);
+          }
         }
       }, 1000);
     });
@@ -105,6 +120,7 @@ export const authService = {
   },
 
   getCurrentUser: async () => {
+    if (USE_MOCK_DATA === 'true') {
     // Mock get current user
     const user = localStorage.getItem('treadx_user');
     if (user) {
@@ -113,6 +129,11 @@ export const authService = {
       });
     }
     throw new Error('No user found');
+    } else {
+      // Real API call to fetch current user profile
+      const response = await apiClient.get(API_ENDPOINTS.CURRENT_USER);
+      return response;
+    }
   }
 };
 

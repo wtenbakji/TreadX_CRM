@@ -8,11 +8,16 @@ const authReducer = (state, action) => {
     case 'LOGIN_START':
       return { ...state, loading: true, error: null };
     case 'LOGIN_SUCCESS':
+      // Normalize role to string for compatibility
+      const normalizedUser = {
+        ...action.payload.user,
+        roleName: typeof action.payload.user.role === 'object' ? action.payload.user.role.name : action.payload.user.role
+      };
       return { 
         ...state, 
         loading: false, 
         isAuthenticated: true, 
-        user: action.payload.user,
+        user: normalizedUser,
         token: action.payload.token,
         error: null 
       };
@@ -34,7 +39,12 @@ const authReducer = (state, action) => {
         error: null 
       };
     case 'SET_USER':
-      return { ...state, user: action.payload };
+      // Normalize role to string for compatibility
+      const normalizedSetUser = {
+        ...action.payload,
+        roleName: typeof action.payload.role === 'object' ? action.payload.role.name : action.payload.role
+      };
+      return { ...state, user: normalizedSetUser };
     case 'CLEAR_ERROR':
       return { ...state, error: null };
     default:
@@ -61,6 +71,8 @@ export const AuthProvider = ({ children }) => {
     if (token && user) {
       try {
         const parsedUser = JSON.parse(user);
+        // Normalize role to string for compatibility
+        parsedUser.roleName = typeof parsedUser.role === 'object' ? parsedUser.role.name : parsedUser.role;
         dispatch({ 
           type: 'LOGIN_SUCCESS', 
           payload: { token, user: parsedUser } 
@@ -77,16 +89,21 @@ export const AuthProvider = ({ children }) => {
     
     try {
       const response = await authService.login(email, password);
-      const { token, user } = response.data;
-      
+      const { token } = response.data;
       localStorage.setItem('treadx_token', token);
-      localStorage.setItem('treadx_user', JSON.stringify(user));
-      
+      // Fetch user profile from /me endpoint
+      const userResponse = await authService.getCurrentUser();
+      let user = userResponse.data;
+      // Normalize role to string for compatibility
+      const normalizedUser = {
+        ...user,
+        roleName: typeof user.role === 'object' ? user.role.name : user.role
+      };
+      localStorage.setItem('treadx_user', JSON.stringify(normalizedUser));
       dispatch({ 
         type: 'LOGIN_SUCCESS', 
-        payload: { token, user } 
+        payload: { token, user: normalizedUser } 
       });
-      
       return { success: true };
     } catch (error) {
       const errorMessage = error.response?.data?.message || 'Login failed';
@@ -106,6 +123,8 @@ export const AuthProvider = ({ children }) => {
 
   const updateUser = (userData) => {
     const updatedUser = { ...state.user, ...userData };
+    // Normalize role to string for compatibility
+    updatedUser.roleName = typeof updatedUser.role === 'object' ? updatedUser.role.name : updatedUser.role;
     localStorage.setItem('treadx_user', JSON.stringify(updatedUser));
     dispatch({ type: 'SET_USER', payload: updatedUser });
   };
@@ -115,11 +134,11 @@ export const AuthProvider = ({ children }) => {
   };
 
   const hasRole = (role) => {
-    return state.user?.role === role;
+    return state.user?.roleName === role;
   };
 
   const hasAnyRole = (roles) => {
-    return roles.includes(state.user?.role);
+    return roles.includes(state.user?.roleName);
   };
 
   const value = {
