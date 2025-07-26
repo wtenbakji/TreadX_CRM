@@ -3,10 +3,13 @@ import apiClient from './apiClient';
 import { API_ENDPOINTS } from '@/types/api';
 import { USE_MOCK_DATA } from './apiClient';
 
+// Use backend API base URL from environment (same as apiClient.js)
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://159.198.75.161:9003';
+
 // Create axios instance with base configuration
 const api = axios.create({
-  // baseURL: 'http://159.198.75.161:9003',
-    baseURL: 'localhost:9003',  headers: {
+  baseURL: API_BASE_URL,
+  headers: {
     'Content-Type': 'application/json',
   },
 });
