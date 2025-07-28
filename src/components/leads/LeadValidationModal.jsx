@@ -7,6 +7,7 @@ import { Alert, AlertDescription } from '../ui/alert';
 import { CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import { LeadStatus } from '../../types/api';
 import { leadsService } from '../../services/leadsApiService';
+import { formatPostalCode, formatPhoneNumber } from '../../utils/formatters';
 
 const LeadValidationModal = ({ lead, onClose, onSuccess }) => {
   const [validationStatus, setValidationStatus] = useState(null);
@@ -61,9 +62,10 @@ const LeadValidationModal = ({ lead, onClose, onSuccess }) => {
           {/* Lead Summary */}
           <div className="bg-gray-50 p-4 rounded-lg space-y-2">
             <div><strong>Business:</strong> {lead.businessName}</div>
-            <div><strong>Phone:</strong> {lead.phoneNumber}</div>
-            <div><strong>Address:</strong> {lead.streetNumber} {lead.streetName}, {lead.postalCode}</div>
+            <div><strong>Phone:</strong> {formatPhoneNumber(lead.phoneNumber)}</div>
+            <div><strong>Address:</strong> {lead.streetNumber} {lead.streetName}, {formatPostalCode(lead.postalCode)}</div>
             <div><strong>Source:</strong> {lead.source}</div>
+                                {lead.addedByName && <div><strong>Added by:</strong> {lead.addedByName}</div>}
             {lead.notes && <div><strong>Notes:</strong> {lead.notes}</div>}
           </div>
 

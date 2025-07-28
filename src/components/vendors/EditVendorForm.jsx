@@ -4,6 +4,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { vendorsService } from '../../services/vendorsApiService';
+import { 
+  handlePostalCodeChange, 
+  handlePhoneNumberChange, 
+  handleStreetNumberChange
+} from '../../utils/formatters';
 
 const EditVendorForm = () => {
   const { id } = useParams();
@@ -81,7 +86,8 @@ const EditVendorForm = () => {
               <label className="block text-sm font-medium">Street Number</label>
               <Input
                 value={formData.streetNumber}
-                onChange={e => setFormData({ ...formData, streetNumber: e.target.value })}
+                onChange={e => handleStreetNumberChange(e.target.value, (value) => setFormData({ ...formData, streetNumber: value }))}
+                placeholder="123"
                 required
               />
             </div>
@@ -104,7 +110,8 @@ const EditVendorForm = () => {
               <label className="block text-sm font-medium">Postal Code</label>
               <Input
                 value={formData.postalCode}
-                onChange={e => setFormData({ ...formData, postalCode: e.target.value })}
+                onChange={e => handlePostalCodeChange(e.target.value, (value) => setFormData({ ...formData, postalCode: value }))}
+                placeholder="A1A 1A1"
                 required
               />
             </div>
@@ -120,7 +127,8 @@ const EditVendorForm = () => {
               <label className="block text-sm font-medium">Phone Number</label>
               <Input
                 value={formData.phoneNumber}
-                onChange={e => setFormData({ ...formData, phoneNumber: e.target.value })}
+                onChange={e => handlePhoneNumberChange(e.target.value, (value) => setFormData({ ...formData, phoneNumber: value }))}
+                placeholder="+1 (555) 123-4567"
                 required
               />
             </div>

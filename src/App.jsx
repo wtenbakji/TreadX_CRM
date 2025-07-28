@@ -8,6 +8,7 @@ import Dashboard from './pages/Dashboard';
 import LeadsList from './pages/leads/LeadsList';
 import AddLead from './pages/leads/AddLead';
 import LeadDetail from './pages/leads/LeadDetail';
+
 import VendorsList from './pages/vendors/VendorsList';
 import AddVendor from './pages/vendors/AddVendor';
 import VendorDetail from './pages/vendors/VendorDetail';
@@ -53,6 +54,7 @@ function App() {
                   <AddLead />
                 </ProtectedRoute>
               } />
+
               
               {/* Vendors routes */}
               <Route path="vendors" element={

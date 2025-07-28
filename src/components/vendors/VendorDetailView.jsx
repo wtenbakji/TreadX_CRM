@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Mail, Phone, MapPin, User, Edit, Trash2, Building2 } from 'lucide-react';
+import { formatPostalCode, formatPhoneNumber } from '../../utils/formatters';
 import vendorsService from '../../services/vendorsApiService';
 
 const statusColors = {
@@ -102,14 +103,14 @@ const VendorDetailView = () => {
               <div className="flex items-center gap-2 text-gray-700">
                 <Phone className="h-5 w-5 text-gray-400" />
                 <span className="font-semibold">Phone:</span>
-                <span>{vendor.phoneNumber}</span>
+                <span>{formatPhoneNumber(vendor.phoneNumber)}</span>
               </div>
             </div>
             <div className="space-y-4">
               <div className="flex items-center gap-2 text-gray-700">
                 <MapPin className="h-5 w-5 text-gray-400" />
                 <span className="font-semibold">Address:</span>
-                <span>{vendor.streetNumber} {vendor.streetName} {vendor.aptUnitBldg || ''} {vendor.postalCode}</span>
+                <span>{vendor.streetNumber} {vendor.streetName} {vendor.aptUnitBldg || ''} {formatPostalCode(vendor.postalCode)}</span>
               </div>
               <div className="flex items-center gap-2 text-gray-700">
                 <span className="font-semibold">Vendor ID:</span>

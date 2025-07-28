@@ -18,17 +18,33 @@ const mockLeads = [
     streetName: 'Main Street',
     aptUnitBldg: 'Suite 100',
     postalCode: 'M5V 3A8',
+    city: 'Toronto',
+    province: 'Ontario',
+    country: 'Canada',
+    formattedAddress: '123 Main Street, Suite 100, M5V 3A8, Toronto, Ontario, Canada',
     source: LeadSource.GOVERNMENT,
     sourceUrl: 'https://government-database.com/business/123',
     status: LeadStatus.CONTACTED,
     notes: 'Large commercial fleet, interested in bulk tire orders',
     vendorId: null,
-    createdAt: new Date(Date.now() - 172800000).toISOString(),
-    updatedAt: new Date(Date.now() - 86400000).toISOString(),
+    createdAt: [2025, 7, 28, 13, 3, 4, 45037000],
+    updatedAt: [2025, 7, 28, 14, 8, 40, 963168000],
+    addedBy: 3,
+    addedByName: 'Platform Admin',
+    lastModifiedBy: 52,
+    lastModifiedByName: 'Ahmad Lounitch',
+    validatedBy: 3,
+    validatedByFirstName: 'Platform',
+    validatedByLastName: 'Admin',
+    validatedAt: [2025, 7, 28, 13, 10, 33, 570598000],
     contactMethod: ContactMethod.PHONE,
     contactMethodDetails: '+1-555-0123',
     contactName: 'John Smith',
-    position: 'Fleet Manager'
+    position: 'Fleet Manager',
+    addedByManager: false,
+    assignedTo: null,
+    assignedToFirstName: null,
+    assignedToLastName: null
   },
   {
     id: 2,
@@ -38,17 +54,33 @@ const mockLeads = [
     streetName: 'Oak Avenue',
     aptUnitBldg: '',
     postalCode: 'L4C 2N8',
+    city: 'Brampton',
+    province: 'Ontario',
+    country: 'Canada',
+    formattedAddress: '456 Oak Avenue, L4C 2N8, Brampton, Ontario, Canada',
     source: LeadSource.ADS,
     sourceUrl: 'https://ads-platform.com/lead/456',
     status: LeadStatus.PENDING,
     notes: 'Small auto repair shop, potential for regular tire orders',
     vendorId: null,
-    createdAt: new Date(Date.now() - 259200000).toISOString(),
-    updatedAt: new Date(Date.now() - 259200000).toISOString(),
+    createdAt: [2025, 7, 28, 12, 0, 0, 0],
+    updatedAt: [2025, 7, 28, 12, 0, 0, 0],
+    addedBy: 1,
+    addedByName: 'Sales Manager',
+    lastModifiedBy: null,
+    lastModifiedByName: null,
+    validatedBy: null,
+    validatedByFirstName: null,
+    validatedByLastName: null,
+    validatedAt: null,
     contactMethod: null,
     contactMethodDetails: '',
     contactName: '',
-    position: ''
+    position: '',
+    addedByManager: true,
+    assignedTo: null,
+    assignedToFirstName: null,
+    assignedToLastName: null
   },
   {
     id: 3,
@@ -58,17 +90,34 @@ const mockLeads = [
     streetName: 'Industrial Blvd',
     aptUnitBldg: 'Building C',
     postalCode: 'K1A 0A6',
+    city: 'Ottawa',
+    province: 'Ontario',
+    country: 'Canada',
+    formattedAddress: '789 Industrial Blvd, Building C, K1A 0A6, Ottawa, Ontario, Canada',
     source: LeadSource.GOVERNMENT,
     sourceUrl: 'https://government-database.com/business/789',
     status: LeadStatus.APPROVED,
     notes: 'Transportation company with large fleet, high-value opportunity',
     vendorId: null,
-    createdAt: new Date(Date.now() - 345600000).toISOString(),
-    updatedAt: new Date(Date.now() - 172800000).toISOString(),
+    createdAt: [2025, 7, 28, 10, 0, 0, 0],
+    updatedAt: [2025, 7, 28, 11, 30, 0, 0],
+    addedBy: 3,
+    addedByName: 'Platform Admin',
+    lastModifiedBy: 52,
+    lastModifiedByName: 'Ahmad Lounitch',
+    validatedBy: 3,
+    validatedByFirstName: 'Platform',
+    validatedByLastName: 'Admin',
+    validatedAt: [2025, 7, 28, 10, 30, 0, 0],
     contactMethod: ContactMethod.MAIL_EMAIL,
     contactMethodDetails: 'procurement@metrotransport.com',
     contactName: 'Sarah Johnson',
-    position: 'Procurement Manager'
+    position: 'Procurement Manager',
+    addedByManager: false,
+    assignedTo: 'agent-1',
+    assignedToFirstName: 'Ahmad',
+    assignedToLastName: 'Lounitch',
+    assignedAt: [2025, 7, 28, 11, 45, 0, 0]
   }
 ];
 
@@ -93,6 +142,17 @@ const realLeadsService = {
       return extractResponseData(response);
     } catch (error) {
       throw new Error(handleApiError(error, 'Failed to fetch leads by status'));
+    }
+  },
+
+  // Get my leads (for agents)
+  getMyLeads: async (params = {}) => {
+    try {
+      const queryString = buildPaginationParams(params);
+      const response = await apiClient.get(`${API_ENDPOINTS.MY_LEADS}?${queryString}`);
+      return extractResponseData(response);
+    } catch (error) {
+      throw new Error(handleApiError(error, 'Failed to fetch my leads'));
     }
   },
 
@@ -169,6 +229,16 @@ const realLeadsService = {
     }
   },
 
+  // Take lead (assign to current user)
+  takeLead: async (id) => {
+    try {
+      const response = await apiClient.post(API_ENDPOINTS.LEAD_TAKE(id));
+      return extractResponseData(response);
+    } catch (error) {
+      throw new Error(handleApiError(error, 'Failed to take lead'));
+    }
+  },
+
   // Get file preview URL
   getFilePreviewUrl: (id) => {
     return `${apiClient.defaults.baseURL}${API_ENDPOINTS.LEAD_FILE_PREVIEW(id)}`;
@@ -234,6 +304,11 @@ const mockLeadsService = {
 
   getLeadsByStatus: async (status, params = {}) => {
     return mockLeadsService.getLeads({ status, ...params });
+  },
+
+  getMyLeads: async (params = {}) => {
+    // For mock service, return the same as getLeads
+    return mockLeadsService.getLeads(params);
   },
 
   getLead: async (id) => {
@@ -338,6 +413,24 @@ const mockLeadsService = {
             extensionNumber: contactData.extensionNumber,
             contactName: contactData.contactName,
             position: contactData.position,
+            updatedAt: new Date().toISOString()
+          };
+          resolve(mockLeads[index]);
+        } else {
+          reject(new Error('Lead not found'));
+        }
+      }, 300);
+    });
+  },
+
+  takeLead: async (id) => {
+    return new Promise((resolve, reject) => {
+      setTimeout(() => {
+        const index = mockLeads.findIndex(l => l.id === parseInt(id));
+        if (index !== -1) {
+          mockLeads[index] = {
+            ...mockLeads[index],
+            assignedTo: 'current-user-id', // Mock assignment to current user
             updatedAt: new Date().toISOString()
           };
           resolve(mockLeads[index]);

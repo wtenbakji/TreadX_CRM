@@ -6,6 +6,7 @@ import { Input } from '../../components/ui/input';
 import { Textarea } from '../../components/ui/textarea';
 import { Badge } from '../../components/ui/badge';
 import { useAuth } from '../../contexts/AuthContext';
+import { formatPostalCode, formatPhoneNumber } from '../../utils/formatters';
 
 const LeadsApproval = () => {
   const { user } = useAuth();
@@ -19,7 +20,15 @@ const LeadsApproval = () => {
     const fetchPendingLeads = async () => {
       setLoading(true);
       try {
-        const leads = await leadsService.getLeadsByStatus('PENDING');
+        // Check if user is an agent (SALES_AGENT role)
+        const isAgent = user?.roleName === 'SALES_AGENT';
+        
+        let leads;
+        if (isAgent) {
+          leads = await leadsService.getMyLeads({ status: 'PENDING' });
+        } else {
+          leads = await leadsService.getLeadsByStatus('PENDING');
+        }
         setPendingLeads(leads);
       } catch (err) {
         setError('Failed to fetch pending leads.');
@@ -28,7 +37,7 @@ const LeadsApproval = () => {
       }
     };
     fetchPendingLeads();
-  }, []);
+  }, [user]);
 
   const handleAction = async (leadId, status) => {
     setActionLoading(leadId + status);
@@ -64,9 +73,10 @@ const LeadsApproval = () => {
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <div>
-                  <div><strong>Contact:</strong> {lead.contactName} {lead.phoneNumber && `| ${lead.phoneNumber}`}</div>
-                  <div><strong>Address:</strong> {lead.streetNumber} {lead.streetName} {lead.aptUnitBldg && `, ${lead.aptUnitBldg}`}, {lead.postalCode}</div>
+                  <div><strong>Contact:</strong> {lead.contactName} {lead.phoneNumber && `| ${formatPhoneNumber(lead.phoneNumber)}`}</div>
+                  <div><strong>Address:</strong> {lead.streetNumber} {lead.streetName} {lead.aptUnitBldg && `, ${lead.aptUnitBldg}`}, {formatPostalCode(lead.postalCode)}</div>
                   <div><strong>Source:</strong> {lead.source} {lead.sourceUrl && <a href={lead.sourceUrl} className="text-blue-600 underline ml-2" target="_blank" rel="noopener noreferrer">(link)</a>}</div>
+                                      {lead.addedByName && <div><strong>Added by:</strong> {lead.addedByName}</div>}
                   <div><strong>Notes:</strong> {lead.notes}</div>
                 </div>
                 <div>

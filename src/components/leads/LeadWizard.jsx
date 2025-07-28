@@ -23,6 +23,14 @@ import {
 } from 'lucide-react';
 import { LeadSource, defaultLeadRequest } from '../../types/api';
 import { leadsService } from '../../services/leadsApiService';
+import { 
+  handlePostalCodeChange, 
+  handlePhoneNumberChange, 
+  handleStreetNumberChange,
+  validatePostalCode,
+  validatePhoneNumber,
+  validateStreetNumber
+} from '../../utils/formatters';
 
 const WIZARD_STEPS = [
   {
@@ -92,15 +100,21 @@ const LeadWizard = ({ onClose, onSuccess, initialData = null, isEdit = false }) 
       }
       if (field === 'phoneNumber' && !formData.phoneNumber?.trim()) {
         stepErrors.phoneNumber = 'Phone number is required';
+      } else if (field === 'phoneNumber' && formData.phoneNumber?.trim() && !validatePhoneNumber(formData.phoneNumber)) {
+        stepErrors.phoneNumber = 'Please enter a valid Canadian phone number';
       }
       if (field === 'streetNumber' && !formData.streetNumber?.trim()) {
         stepErrors.streetNumber = 'Street number is required';
+      } else if (field === 'streetNumber' && formData.streetNumber?.trim() && !validateStreetNumber(formData.streetNumber)) {
+        stepErrors.streetNumber = 'Street number must contain only numbers';
       }
       if (field === 'streetName' && !formData.streetName?.trim()) {
         stepErrors.streetName = 'Street name is required';
       }
       if (field === 'postalCode' && !formData.postalCode?.trim()) {
         stepErrors.postalCode = 'Postal code is required';
+      } else if (field === 'postalCode' && formData.postalCode?.trim() && !validatePostalCode(formData.postalCode)) {
+        stepErrors.postalCode = 'Please enter a valid Canadian postal code (e.g., A1A 1A1)';
       }
       if (field === 'source' && !formData.source) {
         stepErrors.source = 'Lead source is required';
@@ -219,8 +233,8 @@ const LeadWizard = ({ onClose, onSuccess, initialData = null, isEdit = false }) 
                 <Input
                   id="phoneNumber"
                   value={formData.phoneNumber}
-                  onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
-                  placeholder="+1-555-0123"
+                  onChange={(e) => handlePhoneNumberChange(e.target.value, (value) => handleInputChange('phoneNumber', value))}
+                  placeholder="+1 (555) 123-4567"
                   className={validationErrors.phoneNumber ? 'border-red-500' : ''}
                 />
                 {validationErrors.phoneNumber && (
@@ -246,7 +260,7 @@ const LeadWizard = ({ onClose, onSuccess, initialData = null, isEdit = false }) 
                 <Input
                   id="streetNumber"
                   value={formData.streetNumber}
-                  onChange={(e) => handleInputChange('streetNumber', e.target.value)}
+                  onChange={(e) => handleStreetNumberChange(e.target.value, (value) => handleInputChange('streetNumber', value))}
                   placeholder="123"
                   className={validationErrors.streetNumber ? 'border-red-500' : ''}
                 />
@@ -284,8 +298,8 @@ const LeadWizard = ({ onClose, onSuccess, initialData = null, isEdit = false }) 
                 <Input
                   id="postalCode"
                   value={formData.postalCode}
-                  onChange={(e) => handleInputChange('postalCode', e.target.value)}
-                  placeholder="M5V 3A8"
+                  onChange={(e) => handlePostalCodeChange(e.target.value, (value) => handleInputChange('postalCode', value))}
+                  placeholder="A1A 1A1"
                   className={validationErrors.postalCode ? 'border-red-500' : ''}
                 />
                 {validationErrors.postalCode && (

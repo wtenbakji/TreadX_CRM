@@ -28,7 +28,8 @@ import {
   FileText,
   PhoneCall,
   MessageSquare,
-  RefreshCw
+  RefreshCw,
+  Handshake
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { leadsService } from '../../services/leadsApiService';
@@ -39,6 +40,7 @@ import {
   LeadSource,
   formatAddress 
 } from '../../types/api';
+import { formatPostalCode, formatPhoneNumber } from '../../utils/formatters';
 
 // Helper to parse backend date arrays
 function parseBackendDate(arr) {
@@ -70,6 +72,7 @@ const LeadsList = () => {
   const [sortBy, setSortBy] = useState('createdAt');
   const [sortDirection, setSortDirection] = useState('desc');
   const [message, setMessage] = useState(null);
+  const [takingLead, setTakingLead] = useState(null);
 
   const canCreateLeads = hasAnyRole(['PLATFORM_ADMIN','SALES_MANAGER', 'SALES_AGENT', , 'admin', 'manager', 'sales_rep']);
   const canEditLeads = hasAnyRole(['PLATFORM_ADMIN','SALES_MANAGER', 'SALES_AGENT', ,'admin', 'manager', 'sales_rep']);
@@ -96,6 +99,7 @@ const LeadsList = () => {
     try {
       setLoading(true);
       const params = {
+        search: searchTerm,
         page: currentPage,
         size: pageSize,
         sortBy,
@@ -103,10 +107,22 @@ const LeadsList = () => {
       };
 
       let data;
+      
+      // Check if user is an agent (SALES_AGENT role)
+      const isAgent = user?.roleName === 'SALES_AGENT';
+      
       if (statusFilter !== 'all') {
-        data = await leadsService.getLeadsByStatus(statusFilter, params);
+        if (isAgent) {
+          data = await leadsService.getMyLeads({ status: statusFilter, ...params });
+        } else {
+          data = await leadsService.getLeadsByStatus(statusFilter, params);
+        }
       } else {
-        data = await leadsService.getLeads(params);
+        if (isAgent) {
+          data = await leadsService.getMyLeads(params);
+        } else {
+          data = await leadsService.getLeads(params);
+        }
       }
 
       setLeads(data.content || []);
@@ -129,6 +145,20 @@ const LeadsList = () => {
       } catch (error) {
         setMessage({ text: error.message, type: 'error' });
       }
+    }
+  };
+
+  const handleTakeLead = async (id, event) => {
+    event.stopPropagation(); // Prevent row click
+    try {
+      setTakingLead(id);
+      await leadsService.takeLead(id);
+      setMessage({ text: 'Lead taken successfully!', type: 'success' });
+      loadLeads(); // Refresh the list
+    } catch (error) {
+      setMessage({ text: error.message, type: 'error' });
+    } finally {
+      setTakingLead(null);
     }
   };
 
@@ -394,7 +424,7 @@ const LeadsList = () => {
                     <div>
                       <div className="text-sm text-gray-900 flex items-center">
                         <Phone className="h-3 w-3 mr-1" />
-                        {lead.phoneNumber}
+                        {formatPhoneNumber(lead.phoneNumber)}
                       </div>
                       {lead.contactName && (
                         <div className="text-sm text-gray-500 flex items-center">
@@ -413,7 +443,7 @@ const LeadsList = () => {
                       {lead.aptUnitBldg && (
                         <div className="text-gray-500">{lead.aptUnitBldg}</div>
                       )}
-                      <div className="text-gray-500">{lead.postalCode}</div>
+                      <div className="text-gray-500">{formatPostalCode(lead.postalCode)}</div>
                     </div>
                   </TableCell>
                   <TableCell>
@@ -435,9 +465,37 @@ const LeadsList = () => {
                         Updated {parseBackendDate(lead.updatedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
                       </div>
                     )}
+                    {lead.addedByName && (
+                      <div className="text-xs text-gray-500">
+                        Added by {lead.addedByName}
+                      </div>
+                    )}
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end space-x-2">
+                      {/* Take Lead button for agents */}
+                      {user?.roleName === 'SALES_AGENT' && lead.addedByManager && !lead.assignedTo && (
+                        <Button
+                          variant="default"
+                          size="sm"
+                          onClick={(e) => handleTakeLead(lead.id, e)}
+                          disabled={takingLead === lead.id}
+                          className="bg-green-600 hover:bg-green-700 text-white"
+                        >
+                          {takingLead === lead.id ? (
+                            <>
+                              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-1"></div>
+                              Taking...
+                            </>
+                          ) : (
+                            <>
+                              <Handshake className="h-4 w-4 mr-1" />
+                              Take
+                            </>
+                          )}
+                        </Button>
+                      )}
+                      
                       <Button
                         variant="ghost"
                         size="sm"

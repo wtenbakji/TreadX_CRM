@@ -9,7 +9,8 @@ import {
   Settings,
   X,
   Truck,
-  CheckCircle
+  CheckCircle,
+  Handshake
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { Button } from '../ui/button';
@@ -32,6 +33,7 @@ const Sidebar = ({ onClose }) => {
       icon: Users,
       roles: ['PLATFORM_ADMIN','SALES_MANAGER', 'SALES_AGENT', 'admin', 'manager', 'sales_rep']
     },
+
     {
       name: 'Vendors',
       href: '/vendors',

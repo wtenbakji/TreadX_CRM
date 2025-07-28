@@ -38,6 +38,7 @@ import {
   SelectValue,
 } from '../../components/ui/select';
 import { VendorType, formatDate } from '../../types';
+import { formatPostalCode, formatPhoneNumber } from '../../utils/formatters';
 
 const statusColors = {
   ACTIVE: { backgroundColor: '#28A745', color: '#fff' },
@@ -239,14 +240,14 @@ const VendorsList = () => {
                     </Link>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">{vendor.email}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">{vendor.phoneNumber}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">{formatPhoneNumber(vendor.phoneNumber)}</td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <Badge style={{...statusColors[vendor.status], fontWeight: 600, fontSize: 13, borderRadius: 999, padding: '2px 12px'}}>
                       {vendor.status}
                     </Badge>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-gray-700">
-                    {vendor.streetNumber} {vendor.streetName} {vendor.aptUnitBldg || ''} {vendor.postalCode}
+                    {vendor.streetNumber} {vendor.streetName} {vendor.aptUnitBldg || ''} {formatPostalCode(vendor.postalCode)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right">
                     <div className="flex items-center justify-end gap-2">

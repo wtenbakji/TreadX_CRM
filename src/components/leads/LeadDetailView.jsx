@@ -7,26 +7,28 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { Avatar, AvatarFallback } from '../ui/avatar';
 import { Separator } from '../ui/separator';
 import { Alert, AlertDescription } from '../ui/alert';
-import {
-  Building2,
-  Phone,
-  MapPin,
-  Globe,
-  FileText,
-  Calendar,
-  User,
-  Mail,
-  MessageSquare,
-  Edit,
-  Trash2,
-  CheckCircle,
-  XCircle,
-  Clock,
-  ArrowLeft,
-  Download,
-  Eye,
-  PhoneCall,
-  MessageCircle
+import { 
+  Building2, 
+  Phone, 
+  MapPin, 
+  Globe, 
+  FileText, 
+  Calendar, 
+  User, 
+  Mail, 
+  MessageSquare, 
+  Edit, 
+  Trash2, 
+  CheckCircle, 
+  XCircle, 
+  Clock, 
+  ArrowLeft, 
+  Download, 
+  Eye, 
+  PhoneCall, 
+  MessageCircle,
+  Handshake,
+  UserCheck
 } from 'lucide-react';
 import { 
   getStatusColor, 
@@ -40,6 +42,8 @@ import {
 import { leadsService } from '../../services/leadsApiService';
 import LeadContactModal from './LeadContactModal';
 import LeadValidationModal from './LeadValidationModal';
+import { formatPostalCode, formatPhoneNumber } from '../../utils/formatters';
+import { useAuth } from '../../contexts/AuthContext';
 
 // Helper to parse backend date arrays
 function parseBackendDate(arr) {
@@ -58,11 +62,14 @@ function parseBackendDate(arr) {
 const LeadDetailView = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user, token } = useAuth();
   const [lead, setLead] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showContactModal, setShowContactModal] = useState(false);
   const [showValidationModal, setShowValidationModal] = useState(false);
+  const [takingLead, setTakingLead] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState(null);
 
   useEffect(() => {
     loadLead();
@@ -73,10 +80,34 @@ const LeadDetailView = () => {
       setLoading(true);
       const leadData = await leadsService.getLead(id);
       setLead(leadData);
+      
+      // Load preview URL if document exists and user is authenticated
+      if (leadData.uploadedFile && token) {
+        loadPreviewUrl(leadData.id);
+      }
     } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadPreviewUrl = async (leadId) => {
+    try {
+      const url = `${API_BASE_URL}/api/v1/leads/${leadId}/preview`;
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (response.ok) {
+        const blob = await response.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        setPreviewUrl(blobUrl);
+      }
+    } catch (error) {
+      console.error('Failed to load preview URL:', error);
     }
   };
 
@@ -88,6 +119,19 @@ const LeadDetailView = () => {
   const handleValidationSuccess = (updatedLead) => {
     setLead(updatedLead);
     setShowValidationModal(false);
+  };
+
+  const handleTakeLead = async () => {
+    try {
+      setTakingLead(true);
+      const updatedLead = await leadsService.takeLead(lead.id);
+      setLead(updatedLead);
+      setMessage({ text: 'Lead taken successfully!', type: 'success' });
+    } catch (error) {
+      setMessage({ text: error.message, type: 'error' });
+    } finally {
+      setTakingLead(false);
+    }
   };
 
   const handleDelete = async () => {
@@ -104,6 +148,158 @@ const LeadDetailView = () => {
         setError(err.message);
       }
     }
+  };
+
+  const handlePreview = () => {
+    if (!token) {
+      setError('Authentication required to preview document');
+      return;
+    }
+    
+    // Create a blob URL with authentication
+    const url = `${API_BASE_URL}/api/v1/leads/${lead.id}/preview`;
+    fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('Failed to load preview');
+      }
+      return response.blob();
+    })
+    .then(blob => {
+      const blobUrl = URL.createObjectURL(blob);
+      window.open(blobUrl, '_blank');
+    })
+    .catch(error => {
+      console.error('Preview error:', error);
+      setError('Failed to load document preview');
+    });
+  };
+
+  const handleDownload = () => {
+    if (!token) {
+      setError('Authentication required to download document');
+      return;
+    }
+    
+    // Create a blob URL with authentication
+    const url = `${API_BASE_URL}/api/v1/leads/${lead.id}/file`;
+    fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('Failed to download file');
+      }
+      
+      // Get filename from Content-Disposition header or use original filename
+      const contentDisposition = response.headers.get('Content-Disposition');
+      let filename = `lead-${lead.id}-document`;
+      
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+        if (filenameMatch && filenameMatch[1]) {
+          filename = filenameMatch[1].replace(/['"]/g, '');
+        }
+      }
+      
+      // If no filename from header, try to get it from the uploadedFile field
+      if (filename === `lead-${lead.id}-document` && lead.uploadedFile) {
+        const originalFilename = lead.uploadedFile.split('/').pop(); // Get filename from path
+        if (originalFilename && originalFilename.includes('.')) {
+          filename = originalFilename;
+        }
+      }
+      
+      // Determine file extension from blob type
+      return response.blob().then(blobData => {
+        let finalFilename = filename;
+        
+        // Debug: Log the MIME type to see what we're getting
+        console.log('Blob MIME type:', blobData.type);
+        console.log('Blob size:', blobData.size);
+        
+        // Add extension based on blob type if no extension exists
+        if (!finalFilename.includes('.')) {
+          const mimeType = blobData.type;
+          let extension = '';
+          
+          // Since we can see it's an image in the preview, prioritize image extensions
+          if (mimeType.startsWith('image/')) {
+            switch (mimeType) {
+              case 'image/jpeg':
+              case 'image/jpg':
+                extension = '.jpg';
+                break;
+              case 'image/png':
+                extension = '.png';
+                break;
+              case 'image/gif':
+                extension = '.gif';
+                break;
+              case 'image/webp':
+                extension = '.webp';
+                break;
+              case 'image/bmp':
+                extension = '.bmp';
+                break;
+              case 'image/tiff':
+                extension = '.tiff';
+                break;
+              default:
+                extension = '.png'; // Default for unknown image types
+            }
+          } else {
+            switch (mimeType) {
+              case 'application/pdf':
+                extension = '.pdf';
+                break;
+              case 'application/msword':
+                extension = '.doc';
+                break;
+              case 'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
+                extension = '.docx';
+                break;
+              case 'application/vnd.ms-excel':
+                extension = '.xls';
+                break;
+              case 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':
+                extension = '.xlsx';
+                break;
+              case 'application/octet-stream':
+              case '':
+                // Since we can see it's an image in the preview, default to PNG
+                extension = '.png';
+                break;
+              default:
+                extension = '.bin';
+            }
+          }
+          
+          finalFilename = filename + extension;
+        }
+        
+        console.log('Final filename:', finalFilename);
+        
+        const blobUrl = URL.createObjectURL(blobData);
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.download = finalFilename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(blobUrl);
+      });
+    })
+    .catch(error => {
+      console.error('Download error:', error);
+      setError('Failed to download document');
+    });
   };
 
   const formatDate = (dateArr) => {
@@ -128,8 +324,7 @@ const LeadDetailView = () => {
   };
 
   // Use backend API base URL from environment
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
-  console.log('API_BASE_URL for file preview/download:', API_BASE_URL);
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:9003';
 
   if (loading) {
     return (
@@ -196,6 +391,29 @@ const LeadDetailView = () => {
             {getStatusLabel(lead.status)}
           </Badge>
           
+          {/* Take Lead button for agents */}
+          {user?.roleName === 'SALES_AGENT' && lead.addedByManager && !lead.assignedTo && (
+            <Button 
+              variant="default" 
+              size="sm" 
+              onClick={handleTakeLead}
+              disabled={takingLead}
+              className="bg-green-600 hover:bg-green-700 text-white"
+            >
+              {takingLead ? (
+                <>
+                  <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-2"></div>
+                  Taking...
+                </>
+              ) : (
+                <>
+                  <Handshake className="h-4 w-4 mr-2" />
+                  Take Lead
+                </>
+              )}
+            </Button>
+          )}
+          
           <Button variant="outline" size="sm" onClick={() => navigate(`/leads/${id}/edit`)}>
             <Edit className="h-4 w-4 mr-2" />
             Edit
@@ -224,6 +442,7 @@ const LeadDetailView = () => {
                   <CardTitle className="text-xl">{lead.businessName}</CardTitle>
                   <CardDescription>
                     Lead ID: {lead.id} • Created {formatDate(lead.createdAt)}
+                    {lead.addedByName && ` • Added by ${lead.addedByName}`}
                   </CardDescription>
                 </div>
               </div>
@@ -243,7 +462,7 @@ const LeadDetailView = () => {
                       <div className="flex items-center space-x-2">
                         <Phone className="h-4 w-4 text-gray-500" />
                         <span className="font-medium">Phone:</span>
-                        <span>{lead.phoneNumber}</span>
+                        <span>{formatPhoneNumber(lead.phoneNumber)}</span>
                       </div>
                       
                       <div className="flex items-start space-x-2">
@@ -251,9 +470,7 @@ const LeadDetailView = () => {
                         <div>
                           <span className="font-medium">Address:</span>
                           <div className="text-gray-600">
-                            {lead.streetNumber} {lead.streetName}
-                            {lead.aptUnitBldg && <br />}{lead.aptUnitBldg}
-                            <br />{lead.postalCode}
+                            {lead.formattedAddress || `${lead.streetNumber} ${lead.streetName}${lead.aptUnitBldg ? `, ${lead.aptUnitBldg}` : ''}, ${formatPostalCode(lead.postalCode)}`}
                           </div>
                         </div>
                       </div>
@@ -278,6 +495,22 @@ const LeadDetailView = () => {
                           >
                             View Source
                           </a>
+                        </div>
+                      )}
+                      
+                      {lead.addedByManager && (
+                        <div className="flex items-center space-x-2">
+                          <UserCheck className="h-4 w-4 text-gray-500" />
+                          <span className="font-medium">Added by Manager:</span>
+                          <span className="text-green-600 font-medium">Yes</span>
+                        </div>
+                      )}
+                      
+                      {lead.assignedToFirstName && lead.assignedToLastName && (
+                        <div className="flex items-center space-x-2">
+                          <User className="h-4 w-4 text-gray-500" />
+                          <span className="font-medium">Assigned to:</span>
+                          <span>{lead.assignedToFirstName} {lead.assignedToLastName}</span>
                         </div>
                       )}
                     </div>
@@ -352,23 +585,33 @@ const LeadDetailView = () => {
                           </div>
                         </div>
                         <div className="flex space-x-2">
-                          <Button variant="outline" size="sm" onClick={() => window.open(`${API_BASE_URL}/api/v1/leads/${lead.id}/preview`, '_blank')}>
+                          <Button variant="outline" size="sm" onClick={handlePreview}>
                             <Eye className="h-4 w-4 mr-2" />
                             Preview
                           </Button>
-                          <Button variant="outline" size="sm" onClick={() => window.open(`${API_BASE_URL}/api/v1/leads/${lead.id}/file`, '_blank')}>
+                          <Button variant="outline" size="sm" onClick={handleDownload}>
                             <Download className="h-4 w-4 mr-2" />
                             Download
                           </Button>
                         </div>
                       </div>
                       <div className="mt-4">
-                        <img
-                          src={`${API_BASE_URL}/api/v1/leads/${lead.id}/preview`}
-                          alt="Lead Preview"
-                          className="w-full max-w-xs rounded border"
-                          onError={e => { e.target.style.display = 'none'; }}
-                        />
+                        {previewUrl ? (
+                          <img
+                            src={previewUrl}
+                            alt="Lead Preview"
+                            className="w-full max-w-xs rounded border"
+                            onError={e => { e.target.style.display = 'none'; }}
+                          />
+                        ) : token ? (
+                          <div className="text-center py-4 text-gray-500">
+                            Loading preview...
+                          </div>
+                        ) : (
+                          <div className="text-center py-4 text-gray-500">
+                            Authentication required to preview document
+                          </div>
+                        )}
                       </div>
                     </div>
                   ) : (
@@ -385,7 +628,10 @@ const LeadDetailView = () => {
                       <Calendar className="h-4 w-4 text-gray-500" />
                       <div>
                         <p className="font-medium">Lead Created</p>
-                        <p className="text-sm text-gray-500">{formatDate(lead.createdAt)}</p>
+                        <p className="text-sm text-gray-500">
+                          {formatDate(lead.createdAt)}
+                          {lead.addedByName && ` by ${lead.addedByName}`}
+                        </p>
                       </div>
                     </div>
                     
@@ -410,6 +656,18 @@ const LeadDetailView = () => {
                         </div>
                       </div>
                     )}
+                    
+                    {lead.assignedAt && lead.assignedToFirstName && lead.assignedToLastName && (
+                      <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                        <UserCheck className="h-4 w-4 text-blue-500" />
+                        <div>
+                          <p className="font-medium">Lead Assigned</p>
+                          <p className="text-sm text-gray-500">
+                            {formatDate(lead.assignedAt)} to {formatFullName(lead.assignedToFirstName, lead.assignedToLastName)}
+                          </p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </TabsContent>
               </Tabs>
@@ -425,7 +683,7 @@ const LeadDetailView = () => {
               <CardTitle className="text-lg">Quick Actions</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              {lead.status === LeadStatus.PENDING && (
+              {lead.status === LeadStatus.PENDING && (user?.roleName === 'PLATFORM_ADMIN' || user?.roleName === 'SALES_MANAGER') && (
                 <Button 
                   className="w-full" 
                   onClick={() => setShowValidationModal(true)}

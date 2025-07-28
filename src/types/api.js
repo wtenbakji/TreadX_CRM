@@ -70,6 +70,10 @@ export const defaultLeadResponse = {
   streetName: '',
   aptUnitBldg: '',
   postalCode: '',
+  city: '',
+  province: '',
+  country: '',
+  formattedAddress: '',
   source: LeadSource.GOVERNMENT,
   sourceUrl: '',
   uploadedFile: '',
@@ -81,7 +85,9 @@ export const defaultLeadResponse = {
   createdAt: '',
   updatedAt: '',
   addedBy: null,
+  addedByName: '',
   lastModifiedBy: null,
+  lastModifiedByName: '',
   validatedBy: null,
   validatedByFirstName: '',
   validatedByLastName: '',
@@ -90,7 +96,12 @@ export const defaultLeadResponse = {
   contactMethodDetails: '',
   extensionNumber: '',
   contactName: '',
-  position: ''
+  position: '',
+  addedByManager: false,
+  assignedTo: null,
+  assignedToFirstName: '',
+  assignedToLastName: '',
+  assignedAt: null
 };
 
 // Vendor Request DTO
@@ -223,6 +234,8 @@ export const API_ENDPOINTS = {
   LEAD_FILE_PREVIEW: (id) => `/api/v1/leads/${id}/preview`,
   LEAD_FILE_DOWNLOAD: (id) => `/api/v1/leads/${id}/file`,
   LEADS_BY_STATUS: '/api/v1/leads/status',
+  MY_LEADS: '/api/v1/leads/my-leads',
+  LEAD_TAKE: (id) => `/api/v1/leads/${id}/take`,
   
   // Vendors
   VENDORS: '/api/v1/vendors',

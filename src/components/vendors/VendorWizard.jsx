@@ -8,6 +8,15 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { leadsService } from '../../services/leadsApiService';
 import { LeadStatus, defaultVendorRequest } from '../../types/api';
 import vendorsService from '../../services/vendorsApiService';
+import { useAuth } from '../../contexts/AuthContext';
+import { 
+  handlePostalCodeChange, 
+  handlePhoneNumberChange, 
+  handleStreetNumberChange,
+  validatePostalCode,
+  validatePhoneNumber,
+  validateStreetNumber
+} from '../../utils/formatters';
 
 const getSteps = (hasLeadId) => hasLeadId ? [
   {
@@ -73,6 +82,7 @@ function useQuery() {
 
 const VendorWizard = ({ onClose, onSuccess }) => {
   const query = useQuery();
+  const { user } = useAuth();
   const leadIdFromQuery = query.get('leadId');
   const [currentStep, setCurrentStep] = useState(0);
   const [leads, setLeads] = useState([]);
@@ -136,8 +146,19 @@ const VendorWizard = ({ onClose, onSuccess }) => {
         size: pageSize,
         search: searchTerm
       };
-      // Only fetch CONTACTED leads
-      const data = await leadsService.getLeadsByStatus(LeadStatus.CONTACTED, params);
+      
+      // Check if user is an agent (SALES_AGENT role)
+      const isAgent = user?.roleName === 'SALES_AGENT';
+      
+      let data;
+      if (isAgent) {
+        // For agents, get their contacted leads
+        data = await leadsService.getMyLeads({ status: LeadStatus.CONTACTED, ...params });
+      } else {
+        // For others, get all contacted leads
+        data = await leadsService.getLeadsByStatus(LeadStatus.CONTACTED, params);
+      }
+      
       setLeads(data.content || []);
       setTotalPages(data.totalPages || 0);
     } catch (error) {
@@ -346,7 +367,8 @@ const VendorWizard = ({ onClose, onSuccess }) => {
               <label className="block text-sm font-medium">Phone Number</label>
               <Input
                 value={formData.phoneNumber}
-                onChange={e => setFormData({ ...formData, phoneNumber: e.target.value })}
+                onChange={e => handlePhoneNumberChange(e.target.value, (value) => setFormData({ ...formData, phoneNumber: value }))}
+                placeholder="+1 (555) 123-4567"
                 required
               />
             </div>
@@ -356,7 +378,8 @@ const VendorWizard = ({ onClose, onSuccess }) => {
               <label className="block text-sm font-medium">Street Number</label>
               <Input
                 value={formData.streetNumber}
-                onChange={e => setFormData({ ...formData, streetNumber: e.target.value })}
+                onChange={e => handleStreetNumberChange(e.target.value, (value) => setFormData({ ...formData, streetNumber: value }))}
+                placeholder="123"
                 required
               />
             </div>
@@ -385,7 +408,8 @@ const VendorWizard = ({ onClose, onSuccess }) => {
               <label className="block text-sm font-medium">Postal Code</label>
               <Input
                 value={formData.postalCode}
-                onChange={e => setFormData({ ...formData, postalCode: e.target.value })}
+                onChange={e => handlePostalCodeChange(e.target.value, (value) => setFormData({ ...formData, postalCode: value }))}
+                placeholder="A1A 1A1"
                 required
               />
             </div>
